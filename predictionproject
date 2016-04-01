@@ -1,0 +1,74 @@
+# loading libraries
+library(Matrix)
+library(lme4)
+library(pbkrtest)
+library(lattice)
+library(ggplot2)
+library(caret)
+library(e1071)
+library(randomForest)get
+library(AppliedPredictiveModeling)
+library(tree)
+
+# loading and examine the data
+setwd("/Users/renswajon/Coursera")
+
+trainingOriginal = read.csv(file="pml-training.csv", header=TRUE, as.is = TRUE, stringsAsFactors = FALSE, sep=',', na.strings = c('NA','','#DIV/0!'))
+testOriginal = read.csv(file="pml-testing.csv", header=TRUE, as.is = TRUE, stringsAsFactors = FALSE, sep=',', na.strings = c('NA','','#DIV/0!'))
+
+trainingOriginal$classe = as.factor(trainingOriginal$classe) 
+#dput(trainingOriginal)
+
+dim(trainingOriginal)
+dim(testOriginal)
+
+summary(trainingOriginal$classe)
+
+# Pre-screening the data: remove unrelevant variables 
+
+NAs = apply(trainingOriginal,2,function(x) {sum(is.na(x))}) 
+trainingOriginal = trainingOriginal[,which(NAs == 0)]
+NAs = apply(testOriginal,2,function(x) {sum(is.na(x))}) 
+testOriginal = testOriginal[,which(NAs == 0)]
+
+# Pre-process variables
+
+preProc = which(lapply(trainingOriginal, class) %in% "numeric")
+
+preObj = preProcess(trainingOriginal[,preProc],method=c('knnImpute', 'center', 'scale'))
+training = predict(preObj, trainingOriginal[,preProc])
+training$classe = trainingOriginal$classe
+
+testing = predict(preObj,testOriginal[,preProc])
+
+
+# Split data for cross validation
+
+set.seed(30000)
+
+inTrain = createDataPartition(training$classe, p = 3/4, list=FALSE)
+training2 = training[inTrain,]
+crossValidation = training[-inTrain,]
+
+# Train model using Random Forrest
+
+fitness = training(classe ~., method="rf", data=training2, trControl=trainControl(method='cv'), number=5, allowParallel=TRUE )
+
+save(fitness,file="/Users/renswajon/Coursera/fitness.R")
+
+## Check the accuracy of the training and cross validation set
+
+# Training
+train_Pred <- predict(fitness, training2)
+confusionMatrix(train_Pred, training2$classe)
+
+# Cross validation
+cross_Pred <- predict(fitness, crossValidation)
+confusionMatrix(cross_Pred, crossValidation$classe)
+
+# Prediction
+
+test_Pred = predict(fitness, testing)
+test_Pred
+
+
