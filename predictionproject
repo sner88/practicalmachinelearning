@@ -6,7 +6,7 @@ library(lattice)
 library(ggplot2)
 library(caret)
 library(e1071)
-library(randomForest)get
+library(randomForest)
 library(AppliedPredictiveModeling)
 library(tree)
 
@@ -36,39 +36,39 @@ testOriginal = testOriginal[,which(NAs == 0)]
 preProc = which(lapply(trainingOriginal, class) %in% "numeric")
 
 preObj = preProcess(trainingOriginal[,preProc],method=c('knnImpute', 'center', 'scale'))
-training = predict(preObj, trainingOriginal[,preProc])
-training$classe = trainingOriginal$classe
+train = predict(preObj, trainingOriginal[,preProc])
+train$classe = trainingOriginal$classe
 
-testing = predict(preObj,testOriginal[,preProc])
+test = predict(preObj,testOriginal[,preProc])
 
 
 # Split data for cross validation
 
 set.seed(30000)
 
-inTrain = createDataPartition(training$classe, p = 3/4, list=FALSE)
-training2 = training[inTrain,]
-crossValidation = training[-inTrain,]
+inTrain = createDataPartition(train$classe, p = 3/4, list=FALSE)
+training = train[inTrain,]
+crossValidation = train[-inTrain,]
 
 # Train model using Random Forrest
 
-fitness = training(classe ~., method="rf", data=training2, trControl=trainControl(method='cv'), number=5, allowParallel=TRUE )
+fit = train(classe ~., method="rf", data=training, trControl=trainControl(method='cv'), number=5, allowParallel=TRUE )
 
-save(fitness,file="/Users/renswajon/Coursera/fitness.R")
+save(fit,file="/Users/renswajon/Coursera/fit.R")
 
 ## Check the accuracy of the training and cross validation set
 
 # Training
-train_Pred <- predict(fitness, training2)
-confusionMatrix(train_Pred, training2$classe)
+train_Pred <- predict(fit, training)
+confusionMatrix(train_Pred, training$classe)
 
 # Cross validation
-cross_Pred <- predict(fitness, crossValidation)
+cross_Pred <- predict(fit, crossValidation)
 confusionMatrix(cross_Pred, crossValidation$classe)
 
 # Prediction
 
-test_Pred = predict(fitness, testing)
+test_Pred = predict(fit, test)
 test_Pred
 
 
